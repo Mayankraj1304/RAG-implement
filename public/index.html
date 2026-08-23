@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>rag :: query console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08090c;
+    --panel: #10131a;
+    --panel-2: #0c0e13;
+    --border: #1f2530;
+    --border-bright: #2c3543;
+    --text: #dde3ec;
+    --muted: #5c6673;
+    --dim: #38404d;
+    --accent: #5eead4;
+    --accent-dim: #1f4842;
+    --accent-glow: rgba(94, 234, 212, 0.18);
+    --warn: #ff8a65;
+    --grid-line: rgba(94, 234, 212, 0.055);
+    --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 42px 42px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 42px 42px,
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(94,234,212,0.07), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 20px;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 780px;
+  }
+
+  /* ---------- header ---------- */
+
+  .topline {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .topline .dot {
+    color: var(--accent);
+  }
+
+  h1 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  h1 .bracket { color: var(--accent); font-weight: 500; }
+
+  p.subtitle {
+    margin: 0 0 28px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* ---------- pipeline strip (signature element) ---------- */
+
+  .pipeline {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: center;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin-bottom: 22px;
+    font-size: 11px;
+  }
+
+  .stage {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: flex-start;
+  }
+
+  .stage .label {
+    color: var(--dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 10px;
+    transition: color 0.2s ease;
+  }
+
+  .stage .indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 11px;
+    transition: color 0.2s ease;
+  }
+
+  .stage .indicator::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--dim);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .stage.active .label,
+  .stage.active .indicator { color: var(--accent); }
+
+  .stage.active .indicator::before {
+    background: var(--accent);
+    box-shadow: 0 0 8px 1px var(--accent-glow);
+  }
+
+  .stage.done .indicator::before {
+    background: var(--accent);
+  }
+
+  .connector {
+    color: var(--dim);
+    font-size: 13px;
+    padding: 0 6px;
+    transition: color 0.2s ease;
+  }
+
+  .connector.active { color: var(--accent); }
+
+  /* ---------- terminal panel ---------- */
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-2);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .panel-head .path {
+    color: var(--muted);
+  }
+
+  .panel-body {
+    padding: 18px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .prompt-mark {
+    color: var(--accent);
+    font-size: 15px;
+    line-height: 1.6;
+    padding-top: 12px;
+  }
+
+  textarea {
+    flex: 1;
+    resize: vertical;
+    min-height: 54px;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-family: var(--mono);
+    line-height: 1.6;
+  }
+
+  textarea::placeholder { color: var(--dim); }
+
+  textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  button {
+    background: var(--accent);
+    color: #06110e;
+    border: none;
+    border-radius: 3px;
+    padding: 0 22px;
+    height: 42px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--mono);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+    align-self: flex-start;
+    margin-top: 6px;
+  }
+
+  button:hover:not(:disabled) {
+    background: #8ff5e2;
+  }
+
+  button:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  button:disabled {
+    background: var(--accent-dim);
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+
+  .status {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    min-height: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status.error { color: var(--warn); }
+
+  .status .blink {
+    display: inline-block;
+    width: 6px;
+    height: 12px;
+    background: var(--accent);
+    animation: blink 1s steps(1) infinite;
+  }
+
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  /* ---------- response panel ---------- */
+
+  .response-panel {
+    margin-top: 18px;
+  }
+
+  .answer-box {
+    padding: 18px;
+    min-height: 64px;
+    white-space: pre-wrap;
+    line-height: 1.65;
+    font-size: 14px;
+  }
+
+  .answer-box.placeholder {
+    color: var(--dim);
+  }
+
+  .answer-box.placeholder::before {
+    content: "// awaiting query...";
+  }
+
+  @media (max-width: 640px) {
+    .pipeline {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .connector { display: none; }
+    .input-row { flex-direction: column; }
+    .prompt-mark { display: none; }
+    button { width: 100%; align-self: stretch; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .status .blink { animation: none; }
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="topline">
+    <span><span class="dot">●</span> rag-implementation / index</span>
+    <span id="clockLabel">mistral-embed → pinecone → mistral-small</span>
+  </div>
+
+  <h1><span class="bracket">&gt;_</span> Query Console</h1>
+  <p class="subtitle">Ask a question about the ingested document. It's embedded, matched against the vector index, and answered with retrieved context.</p>
+
+  <div class="pipeline" id="pipeline">
+    <div class="stage" data-stage="embed">
+      <span class="label">01 · embed</span>
+      <span class="indicator">mistral-embed</span>
+    </div>
+    <div class="connector" data-connector="1">→</div>
+    <div class="stage" data-stage="search">
+      <span class="label">02 · retrieve</span>
+      <span class="indicator">pinecone</span>
+    </div>
+    <div class="connector" data-connector="2">→</div>
+    <div class="stage" data-stage="generate">
+      <span class="label">03 · generate</span>
+      <span class="indicator">mistral-small</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <span>input</span>
+      <span class="path">POST /api/query</span>
+    </div>
+    <div class="panel-body">
+      <div class="input-row">
+        <span class="prompt-mark">$</span>
+        <textarea id="question" placeholder="how was the internship experience?"></textarea>
+        <button id="askBtn">Run</button>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+  <div class="panel response-panel">
+    <div class="panel-head">
+      <span>output</span>
+      <span class="path" id="latencyLabel">—</span>
+    </div>
+    <div class="answer-box placeholder" id="answer"></div>
+  </div>
+
+</div>
+
+<script>
+  const askBtn = document.getElementById("askBtn");
+  const questionEl = document.getElementById("question");
+  const answerEl = document.getElementById("answer");
+  const statusEl = document.getElementById("status");
+  const latencyLabel = document.getElementById("latencyLabel");
+  const stages = document.querySelectorAll(".stage");
+  const connectors = document.querySelectorAll(".connector");
+
+  function setStage(stageName) {
+    stages.forEach((s) => {
+      if (s.dataset.stage === stageName) {
+        s.classList.add("active");
+      } else if (stageName === "done") {
+        s.classList.remove("active");
+        s.classList.add("done");
+      } else {
+        const order = ["embed", "search", "generate"];
+        if (order.indexOf(s.dataset.stage) < order.indexOf(stageName)) {
+          s.classList.add("done");
+          s.classList.remove("active");
+        } else {
+          s.classList.remove("active", "done");
+        }
+      }
+    });
+    connectors.forEach((c) => {
+      const n = Number(c.dataset.connector);
+      const order = ["embed", "search", "generate"];
+      const idx = order.indexOf(stageName);
+      if (stageName === "done" || idx > n - 1) {
+        c.classList.add("active");
+      } else {
+        c.classList.remove("active");
+      }
+    });
+  }
+
+  function resetStages() {
+    stages.forEach((s) => s.classList.remove("active", "done"));
+    connectors.forEach((c) => c.classList.remove("active"));
+  }
+
+  async function askQuestion() {
+    const question = questionEl.value.trim();
+    if (!question) {
+      statusEl.classList.add("error");
+      statusEl.innerHTML = "error: empty query";
+      return;
+    }
+
+    statusEl.classList.remove("error");
+    askBtn.disabled = true;
+    answerEl.classList.remove("placeholder");
+    answerEl.textContent = "";
+    latencyLabel.textContent = "running...";
+    resetStages();
+
+    // Simulated pipeline progression for visual feedback while the request is in flight
+    setStage("embed");
+    statusEl.innerHTML = '<span class="blink"></span> embedding query...';
+
+    const stageTimer1 = setTimeout(() => {
+      setStage("search");
+      statusEl.innerHTML = '<span class="blink"></span> querying pinecone...';
+    }, 500);
+
+    const stageTimer2 = setTimeout(() => {
+      setStage("generate");
+      statusEl.innerHTML = '<span class="blink"></span> generating response...';
+    }, 1100);
+
+    const startTime = performance.now();
+
+    try {
+      const res = await fetch("/api/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question }),
+      });
+
+      const data = await res.json();
+
+      clearTimeout(stageTimer1);
+      clearTimeout(stageTimer2);
+
+      if (!res.ok) {
+        throw new Error(data.error || "request failed");
+      }
+
+      setStage("done");
+      const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+      latencyLabel.textContent = `${elapsed}s`;
+      answerEl.textContent = data.answer;
+      statusEl.textContent = "done";
+    } catch (err) {
+      clearTimeout(stageTimer1);
+      clearTimeout(stageTimer2);
+      resetStages();
+      latencyLabel.textContent = "error";
+      statusEl.classList.add("error");
+      statusEl.textContent = `error: ${err.message}`;
+      answerEl.classList.add("placeholder");
+      answerEl.textContent = "";
+    } finally {
+      askBtn.disabled = false;
+    }
+  }
+
+  askBtn.addEventListener("click", askQuestion);
+  questionEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      askQuestion();
+    }
+  });
+</script>
+
+</body>
+</html>
