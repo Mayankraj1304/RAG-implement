@@ -1,9 +1,10 @@
-import { PDFParse } from "pdf-parse";
+import pdf from "pdf-parse";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { MistralAIEmbeddings } from "@langchain/mistralai";
 import { Pinecone } from "@pinecone-database/pinecone";
 import dotenv from "dotenv";
 import fs from "fs";
+import { createHash } from "crypto";
 
 dotenv.config();
 
@@ -15,35 +16,43 @@ const embeddingModel = new MistralAIEmbeddings({
 const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
 const index = pc.index("rag-implementation");
 
-// 1. Read and parse the PDF
-const dataBuffer = fs.readFileSync("./story.pdf");
-const parser = new PDFParse({ data: dataBuffer });
-const data = await parser.getText();
+export async function ingestDocument(dataBuffer, filename = "document.pdf") {
+  const documentHash = createHash("sha256").update(dataBuffer).digest("hex");
+  const documentId = `document-${documentHash}`;
+  const existingDocument = await index.fetch([`${documentId}-0`]);
+  if (existingDocument.records?.[`${documentId}-0`]) {
+    return { documentId, filename, chunks: 0, alreadyIngested: true };
+  }
 
-// 2. Split into chunks
-const splitter = new RecursiveCharacterTextSplitter({
-  chunkSize: 500,
-  chunkOverlap: 0,
-});
-const chunks = await splitter.splitText(data.text);
+  const data = await pdf(dataBuffer);
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 500,
+    chunkOverlap: 0,
+  });
+  const chunks = await splitter.splitText(data.text);
+  if (chunks.length === 0) {
+    throw new Error("The PDF does not contain extractable text.");
+  }
+  const docs = await Promise.all(
+    chunks.map(async (chunk) => ({
+      text: chunk,
+      embedding: await embeddingModel.embedQuery(chunk),
+    })),
+  );
 
-// 3. Embed each chunk
-const docs = await Promise.all(
-  chunks.map(async (chunk) => {
-    const embedding = await embeddingModel.embedQuery(chunk);
-    return { text: chunk, embedding };
-  }),
-);
+  await index.upsert(
+    docs.map((doc, i) => ({
+      id: `${documentId}-${i}`,
+      values: doc.embedding,
+      metadata: {
+        text: doc.text,
+        documentId,
+        documentHash,
+        filename,
+      },
+    })),
+  );
 
-// 4. Upsert into Pinecone
-await index.upsert({
-  records: docs.map((doc, i) => ({
-    id: `doc-${i}`,
-    values: doc.embedding,
-    metadata: {
-      text: doc.text,
-    },
-  })),
-});
+  return { documentId, filename, chunks: docs.length };
+}
 
-console.log(`Ingestion complete: ${docs.length} chunks upserted to Pinecone.`);

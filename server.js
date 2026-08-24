@@ -2,12 +2,19 @@ import express from "express";
 import { MistralAIEmbeddings, ChatMistralAI } from "@langchain/mistralai";
 import { Pinecone } from "@pinecone-database/pinecone";
 import dotenv from "dotenv";
+import multer from "multer";
+import { ingestDocument } from "./ingestion.js";
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 app.use(express.static("public")); // serves index.html
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 const embeddingModel = new MistralAIEmbeddings({
   apiKey: process.env.MISTRAL_API_KEY,
@@ -22,6 +29,32 @@ const chatModel = new ChatMistralAI({
 
 const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
 const index = pc.index("rag-implementation");
+
+app.post("/api/ingest", upload.single("document"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "A PDF document is required." });
+    }
+
+    const isPdf =
+      req.file.mimetype === "application/pdf" ||
+      req.file.originalname.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      return res
+        .status(400)
+        .json({ error: "Only PDF documents are supported." });
+    }
+
+    const result = await ingestDocument(req.file.buffer, req.file.originalname);
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error:
+        err instanceof Error ? err.message : "Could not ingest the document.",
+    });
+  }
+});
 
 // Same working as main.js: embed query -> Pinecone topK query -> use matches as context
 app.post("/api/query", async (req, res) => {
@@ -70,8 +103,18 @@ Answer:`;
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Something went wrong processing your query." });
+    res
+      .status(500)
+      .json({ error: "Something went wrong processing your query." });
   }
+});
+
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  const status = err instanceof multer.MulterError ? 400 : 500;
+  res.status(status).json({
+    error: err instanceof Error ? err.message : "Could not process the upload.",
+  });
 });
 
 const PORT = process.env.PORT || 3000;

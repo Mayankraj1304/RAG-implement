@@ -1,488 +1,806 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>rag :: query console</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #08090c;
-    --panel: #10131a;
-    --panel-2: #0c0e13;
-    --border: #1f2530;
-    --border-bright: #2c3543;
-    --text: #dde3ec;
-    --muted: #5c6673;
-    --dim: #38404d;
-    --accent: #5eead4;
-    --accent-dim: #1f4842;
-    --accent-glow: rgba(94, 234, 212, 0.18);
-    --warn: #ff8a65;
-    --grid-line: rgba(94, 234, 212, 0.055);
-    --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-  }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>rag :: query console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #08090c;
+        --panel: #10131a;
+        --panel-2: #0c0e13;
+        --border: #1f2530;
+        --border-bright: #2c3543;
+        --text: #dde3ec;
+        --muted: #5c6673;
+        --dim: #38404d;
+        --accent: #5eead4;
+        --accent-dim: #1f4842;
+        --accent-glow: rgba(94, 234, 212, 0.18);
+        --warn: #ff8a65;
+        --grid-line: rgba(94, 234, 212, 0.055);
+        --mono:
+          "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+      }
 
-  * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
 
-  html, body {
-    height: 100%;
-  }
+      html,
+      body {
+        height: 100%;
+      }
 
-  body {
-    margin: 0;
-    background:
-      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 42px 42px,
-      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 42px 42px,
-      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(94,234,212,0.07), transparent 60%),
-      var(--bg);
-    color: var(--text);
-    font-family: var(--mono);
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 48px 20px;
-  }
+      body {
+        margin: 0;
+        background:
+          linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 42px 42px,
+          linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 /
+            42px 42px,
+          radial-gradient(
+            ellipse 900px 500px at 50% -10%,
+            rgba(94, 234, 212, 0.07),
+            transparent 60%
+          ),
+          var(--bg);
+        color: var(--text);
+        font-family: var(--mono);
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 48px 20px;
+      }
 
-  .wrap {
-    width: 100%;
-    max-width: 780px;
-  }
+      .wrap {
+        width: 100%;
+        max-width: 780px;
+      }
 
-  /* ---------- header ---------- */
+      /* ---------- header ---------- */
 
-  .topline {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 6px;
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    color: var(--dim);
-    text-transform: uppercase;
-  }
+      .topline {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 6px;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        color: var(--dim);
+        text-transform: uppercase;
+      }
 
-  .topline .dot {
-    color: var(--accent);
-  }
+      .topline .dot {
+        color: var(--accent);
+      }
 
-  h1 {
-    margin: 0 0 4px;
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-  }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
 
-  h1 .bracket { color: var(--accent); font-weight: 500; }
+      h1 .bracket {
+        color: var(--accent);
+        font-weight: 500;
+      }
 
-  p.subtitle {
-    margin: 0 0 28px;
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.6;
-  }
+      p.subtitle {
+        margin: 0 0 28px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
 
-  /* ---------- pipeline strip (signature element) ---------- */
+      /* ---------- pipeline strip (signature element) ---------- */
 
-  .pipeline {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr auto 1fr;
-    align-items: center;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 14px 18px;
-    margin-bottom: 22px;
-    font-size: 11px;
-  }
+      .pipeline {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr auto 1fr;
+        align-items: center;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 14px 18px;
+        margin-bottom: 22px;
+        font-size: 11px;
+      }
 
-  .stage {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    align-items: flex-start;
-  }
+      .stage {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        align-items: flex-start;
+      }
 
-  .stage .label {
-    color: var(--dim);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-size: 10px;
-    transition: color 0.2s ease;
-  }
+      .stage .label {
+        color: var(--dim);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 10px;
+        transition: color 0.2s ease;
+      }
 
-  .stage .indicator {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--muted);
-    font-size: 11px;
-    transition: color 0.2s ease;
-  }
+      .stage .indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 11px;
+        transition: color 0.2s ease;
+      }
 
-  .stage .indicator::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--dim);
-    transition: background 0.2s ease, box-shadow 0.2s ease;
-  }
+      .stage .indicator::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--dim);
+        transition:
+          background 0.2s ease,
+          box-shadow 0.2s ease;
+      }
 
-  .stage.active .label,
-  .stage.active .indicator { color: var(--accent); }
+      .stage.active .label,
+      .stage.active .indicator {
+        color: var(--accent);
+      }
 
-  .stage.active .indicator::before {
-    background: var(--accent);
-    box-shadow: 0 0 8px 1px var(--accent-glow);
-  }
+      .stage.active .indicator::before {
+        background: var(--accent);
+        box-shadow: 0 0 8px 1px var(--accent-glow);
+      }
 
-  .stage.done .indicator::before {
-    background: var(--accent);
-  }
+      .stage.done .indicator::before {
+        background: var(--accent);
+      }
 
-  .connector {
-    color: var(--dim);
-    font-size: 13px;
-    padding: 0 6px;
-    transition: color 0.2s ease;
-  }
+      .connector {
+        color: var(--dim);
+        font-size: 13px;
+        padding: 0 6px;
+        transition: color 0.2s ease;
+      }
 
-  .connector.active { color: var(--accent); }
+      .connector.active {
+        color: var(--accent);
+      }
 
-  /* ---------- terminal panel ---------- */
+      /* ---------- terminal panel ---------- */
 
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    overflow: hidden;
-  }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        overflow: hidden;
+      }
 
-  .panel-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--panel-2);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--dim);
-  }
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+        background: var(--panel-2);
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
 
-  .panel-head .path {
-    color: var(--muted);
-  }
+      .panel-head .path {
+        color: var(--muted);
+      }
 
-  .panel-body {
-    padding: 18px;
-  }
+      .panel-body {
+        padding: 18px;
+      }
 
-  .input-row {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-  }
+      .upload-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
 
-  .prompt-mark {
-    color: var(--accent);
-    font-size: 15px;
-    line-height: 1.6;
-    padding-top: 12px;
-  }
+      input[type="file"] {
+        flex: 1;
+        min-width: 0;
+        color: var(--muted);
+        font: 12px var(--mono);
+      }
 
-  textarea {
-    flex: 1;
-    resize: vertical;
-    min-height: 54px;
-    background: var(--panel-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 12px 14px;
-    font-size: 14px;
-    font-family: var(--mono);
-    line-height: 1.6;
-  }
+      input[type="file"]::file-selector-button {
+        margin-right: 10px;
+        padding: 9px 12px;
+        border: 1px solid var(--border-bright);
+        border-radius: 3px;
+        background: var(--panel-2);
+        color: var(--text);
+        font: 12px var(--mono);
+        cursor: pointer;
+      }
 
-  textarea::placeholder { color: var(--dim); }
+      .upload-button {
+        margin-top: 0;
+        height: 38px;
+      }
 
-  textarea:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
-  }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
 
-  button {
-    background: var(--accent);
-    color: #06110e;
-    border: none;
-    border-radius: 3px;
-    padding: 0 22px;
-    height: 42px;
-    font-size: 13px;
-    font-weight: 700;
-    font-family: var(--mono);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background 0.15s ease, transform 0.1s ease;
-    align-self: flex-start;
-    margin-top: 6px;
-  }
+      .input-row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
 
-  button:hover:not(:disabled) {
-    background: #8ff5e2;
-  }
+      .prompt-mark {
+        color: var(--accent);
+        font-size: 15px;
+        line-height: 1.6;
+        padding-top: 12px;
+      }
 
-  button:active:not(:disabled) {
-    transform: translateY(1px);
-  }
+      textarea {
+        flex: 1;
+        resize: vertical;
+        min-height: 54px;
+        background: var(--panel-2);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 12px 14px;
+        font-size: 14px;
+        font-family: var(--mono);
+        line-height: 1.6;
+      }
 
-  button:disabled {
-    background: var(--accent-dim);
-    color: var(--muted);
-    cursor: not-allowed;
-  }
+      textarea::placeholder {
+        color: var(--dim);
+      }
 
-  .status {
-    margin-top: 10px;
-    font-size: 12px;
-    color: var(--muted);
-    min-height: 16px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
+      textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+      }
 
-  .status.error { color: var(--warn); }
+      button {
+        background: var(--accent);
+        color: #06110e;
+        border: none;
+        border-radius: 3px;
+        padding: 0 22px;
+        height: 42px;
+        font-size: 13px;
+        font-weight: 700;
+        font-family: var(--mono);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition:
+          background 0.15s ease,
+          transform 0.1s ease;
+        align-self: flex-start;
+        margin-top: 6px;
+      }
 
-  .status .blink {
-    display: inline-block;
-    width: 6px;
-    height: 12px;
-    background: var(--accent);
-    animation: blink 1s steps(1) infinite;
-  }
+      button:hover:not(:disabled) {
+        background: #8ff5e2;
+      }
 
-  @keyframes blink {
-    50% { opacity: 0; }
-  }
+      button:active:not(:disabled) {
+        transform: translateY(1px);
+      }
 
-  /* ---------- response panel ---------- */
+      button:disabled {
+        background: var(--accent-dim);
+        color: var(--muted);
+        cursor: not-allowed;
+      }
 
-  .response-panel {
-    margin-top: 18px;
-  }
+      .status {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        min-height: 16px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
 
-  .answer-box {
-    padding: 18px;
-    min-height: 64px;
-    white-space: pre-wrap;
-    line-height: 1.65;
-    font-size: 14px;
-  }
+      .status.error {
+        color: var(--warn);
+      }
 
-  .answer-box.placeholder {
-    color: var(--dim);
-  }
+      .status .blink {
+        display: inline-block;
+        width: 6px;
+        height: 12px;
+        background: var(--accent);
+        animation: blink 1s steps(1) infinite;
+      }
 
-  .answer-box.placeholder::before {
-    content: "// awaiting query...";
-  }
-
-  @media (max-width: 640px) {
-    .pipeline {
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-    .connector { display: none; }
-    .input-row { flex-direction: column; }
-    .prompt-mark { display: none; }
-    button { width: 100%; align-self: stretch; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .status .blink { animation: none; }
-    * { transition: none !important; }
-  }
-</style>
-</head>
-<body>
-
-<div class="wrap">
-
-  <div class="topline">
-    <span><span class="dot">●</span> rag-implementation / index</span>
-    <span id="clockLabel">mistral-embed → pinecone → mistral-small</span>
-  </div>
-
-  <h1><span class="bracket">&gt;_</span> Query Console</h1>
-  <p class="subtitle">Ask a question about the ingested document. It's embedded, matched against the vector index, and answered with retrieved context.</p>
-
-  <div class="pipeline" id="pipeline">
-    <div class="stage" data-stage="embed">
-      <span class="label">01 · embed</span>
-      <span class="indicator">mistral-embed</span>
-    </div>
-    <div class="connector" data-connector="1">→</div>
-    <div class="stage" data-stage="search">
-      <span class="label">02 · retrieve</span>
-      <span class="indicator">pinecone</span>
-    </div>
-    <div class="connector" data-connector="2">→</div>
-    <div class="stage" data-stage="generate">
-      <span class="label">03 · generate</span>
-      <span class="indicator">mistral-small</span>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <span>input</span>
-      <span class="path">POST /api/query</span>
-    </div>
-    <div class="panel-body">
-      <div class="input-row">
-        <span class="prompt-mark">$</span>
-        <textarea id="question" placeholder="how was the internship experience?"></textarea>
-        <button id="askBtn">Run</button>
-      </div>
-      <div class="status" id="status"></div>
-    </div>
-  </div>
-
-  <div class="panel response-panel">
-    <div class="panel-head">
-      <span>output</span>
-      <span class="path" id="latencyLabel">—</span>
-    </div>
-    <div class="answer-box placeholder" id="answer"></div>
-  </div>
-
-</div>
-
-<script>
-  const askBtn = document.getElementById("askBtn");
-  const questionEl = document.getElementById("question");
-  const answerEl = document.getElementById("answer");
-  const statusEl = document.getElementById("status");
-  const latencyLabel = document.getElementById("latencyLabel");
-  const stages = document.querySelectorAll(".stage");
-  const connectors = document.querySelectorAll(".connector");
-
-  function setStage(stageName) {
-    stages.forEach((s) => {
-      if (s.dataset.stage === stageName) {
-        s.classList.add("active");
-      } else if (stageName === "done") {
-        s.classList.remove("active");
-        s.classList.add("done");
-      } else {
-        const order = ["embed", "search", "generate"];
-        if (order.indexOf(s.dataset.stage) < order.indexOf(stageName)) {
-          s.classList.add("done");
-          s.classList.remove("active");
-        } else {
-          s.classList.remove("active", "done");
+      @keyframes blink {
+        50% {
+          opacity: 0;
         }
       }
-    });
-    connectors.forEach((c) => {
-      const n = Number(c.dataset.connector);
-      const order = ["embed", "search", "generate"];
-      const idx = order.indexOf(stageName);
-      if (stageName === "done" || idx > n - 1) {
-        c.classList.add("active");
-      } else {
-        c.classList.remove("active");
+
+      /* ---------- response panel ---------- */
+
+      .response-panel {
+        margin-top: 18px;
       }
-    });
-  }
 
-  function resetStages() {
-    stages.forEach((s) => s.classList.remove("active", "done"));
-    connectors.forEach((c) => c.classList.remove("active"));
-  }
+      .answer-box {
+        padding: 18px;
+        min-height: 64px;
+        line-height: 1.65;
+        font-size: 14px;
+      }
 
-  async function askQuestion() {
-    const question = questionEl.value.trim();
-    if (!question) {
-      statusEl.classList.add("error");
-      statusEl.innerHTML = "error: empty query";
-      return;
-    }
+      .answer-box > :first-child {
+        margin-top: 0;
+      }
 
-    statusEl.classList.remove("error");
-    askBtn.disabled = true;
-    answerEl.classList.remove("placeholder");
-    answerEl.textContent = "";
-    latencyLabel.textContent = "running...";
-    resetStages();
+      .answer-box > :last-child {
+        margin-bottom: 0;
+      }
 
-    // Simulated pipeline progression for visual feedback while the request is in flight
-    setStage("embed");
-    statusEl.innerHTML = '<span class="blink"></span> embedding query...';
+      .answer-box p,
+      .answer-box ul,
+      .answer-box ol,
+      .answer-box pre {
+        margin: 0 0 14px;
+      }
 
-    const stageTimer1 = setTimeout(() => {
-      setStage("search");
-      statusEl.innerHTML = '<span class="blink"></span> querying pinecone...';
-    }, 500);
+      .answer-box h1,
+      .answer-box h2,
+      .answer-box h3 {
+        margin: 0 0 10px;
+        color: var(--accent);
+        font-size: 16px;
+      }
 
-    const stageTimer2 = setTimeout(() => {
-      setStage("generate");
-      statusEl.innerHTML = '<span class="blink"></span> generating response...';
-    }, 1100);
+      .answer-box ul,
+      .answer-box ol {
+        padding-left: 24px;
+      }
 
-    const startTime = performance.now();
+      .answer-box li + li {
+        margin-top: 5px;
+      }
 
-    try {
-      const res = await fetch("/api/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+      .answer-box code {
+        padding: 2px 5px;
+        border-radius: 3px;
+        background: var(--panel-2);
+        color: #f6c177;
+      }
+
+      .answer-box pre {
+        overflow-x: auto;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        background: var(--panel-2);
+      }
+
+      .answer-box pre code {
+        padding: 0;
+        background: transparent;
+        color: var(--text);
+      }
+
+      .answer-box a {
+        color: var(--accent);
+      }
+
+      .answer-box.placeholder {
+        color: var(--dim);
+      }
+
+      .answer-box.placeholder::before {
+        content: "// awaiting query...";
+      }
+
+      @media (max-width: 640px) {
+        .pipeline {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        .connector {
+          display: none;
+        }
+        .input-row {
+          flex-direction: column;
+        }
+        .upload-row {
+          align-items: stretch;
+          flex-direction: column;
+        }
+        .prompt-mark {
+          display: none;
+        }
+        button {
+          width: 100%;
+          align-self: stretch;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .status .blink {
+          animation: none;
+        }
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="topline">
+        <span><span class="dot">●</span> rag-implementation / index</span>
+        <span id="clockLabel">mistral-embed → pinecone → mistral-small</span>
+      </div>
+
+      <h1><span class="bracket">&gt;_</span> Query Console</h1>
+      <p class="subtitle">
+        Ask a question about the ingested document. It's embedded, matched
+        against the vector index, and answered with retrieved context.
+      </p>
+
+      <div class="pipeline" id="pipeline">
+        <div class="stage" data-stage="embed">
+          <span class="label">01 · embed</span>
+          <span class="indicator">mistral-embed</span>
+        </div>
+        <div class="connector" data-connector="1">→</div>
+        <div class="stage" data-stage="search">
+          <span class="label">02 · retrieve</span>
+          <span class="indicator">pinecone</span>
+        </div>
+        <div class="connector" data-connector="2">→</div>
+        <div class="stage" data-stage="generate">
+          <span class="label">03 · generate</span>
+          <span class="indicator">mistral-small</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span>document</span>
+          <span class="path">POST /api/ingest</span>
+        </div>
+        <div class="panel-body">
+          <div class="upload-row">
+            <label for="documentInput" class="sr-only">PDF document</label>
+            <input
+              id="documentInput"
+              type="file"
+              accept="application/pdf,.pdf"
+            />
+            <button class="upload-button" id="uploadBtn">Ingest</button>
+          </div>
+          <div class="status" id="uploadStatus"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span>input</span>
+          <span class="path">POST /api/query</span>
+        </div>
+        <div class="panel-body">
+          <div class="input-row">
+            <span class="prompt-mark">$</span>
+            <textarea
+              id="question"
+              placeholder="how was the internship experience?"
+            ></textarea>
+            <button id="askBtn">Run</button>
+          </div>
+          <div class="status" id="status"></div>
+        </div>
+      </div>
+
+      <div class="panel response-panel">
+        <div class="panel-head">
+          <span>output</span>
+          <span class="path" id="latencyLabel">—</span>
+        </div>
+        <div class="answer-box placeholder" id="answer"></div>
+      </div>
+    </div>
+
+    <script>
+      const askBtn = document.getElementById("askBtn");
+      const questionEl = document.getElementById("question");
+      const answerEl = document.getElementById("answer");
+      const statusEl = document.getElementById("status");
+      const documentInput = document.getElementById("documentInput");
+      const uploadBtn = document.getElementById("uploadBtn");
+      const uploadStatusEl = document.getElementById("uploadStatus");
+      const latencyLabel = document.getElementById("latencyLabel");
+      const stages = document.querySelectorAll(".stage");
+      const connectors = document.querySelectorAll(".connector");
+
+      function setStage(stageName) {
+        stages.forEach((s) => {
+          if (s.dataset.stage === stageName) {
+            s.classList.add("active");
+          } else if (stageName === "done") {
+            s.classList.remove("active");
+            s.classList.add("done");
+          } else {
+            const order = ["embed", "search", "generate"];
+            if (order.indexOf(s.dataset.stage) < order.indexOf(stageName)) {
+              s.classList.add("done");
+              s.classList.remove("active");
+            } else {
+              s.classList.remove("active", "done");
+            }
+          }
+        });
+        connectors.forEach((c) => {
+          const n = Number(c.dataset.connector);
+          const order = ["embed", "search", "generate"];
+          const idx = order.indexOf(stageName);
+          if (stageName === "done" || idx > n - 1) {
+            c.classList.add("active");
+          } else {
+            c.classList.remove("active");
+          }
+        });
+      }
+
+      function resetStages() {
+        stages.forEach((s) => s.classList.remove("active", "done"));
+        connectors.forEach((c) => c.classList.remove("active"));
+      }
+
+      function escapeHtml(value) {
+        return value.replace(
+          /[&<>"']/g,
+          (character) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[character],
+        );
+      }
+
+      function renderInlineMarkdown(value) {
+        let html = escapeHtml(value);
+        const codeSpans = [];
+
+        html = html.replace(/`([^`]+)`/g, (_match, code) => {
+          codeSpans.push(`<code>${code}</code>`);
+          return `@@CODE_${codeSpans.length - 1}@@`;
+        });
+        html = html.replace(
+          /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+          '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
+        );
+        html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+        html = html.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+        html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+        html = html.replace(/_([^_]+)_/g, "<em>$1</em>");
+
+        return html.replace(
+          /@@CODE_(\d+)@@/g,
+          (_match, index) => codeSpans[index],
+        );
+      }
+
+      function renderMarkdown(markdown) {
+        const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
+        const output = [];
+        let paragraph = [];
+        let listType = null;
+        let codeLines = null;
+
+        const flushParagraph = () => {
+          if (paragraph.length) {
+            output.push(`<p>${renderInlineMarkdown(paragraph.join(" "))}</p>`);
+            paragraph = [];
+          }
+        };
+
+        const closeList = () => {
+          if (listType) {
+            output.push(`</${listType}>`);
+            listType = null;
+          }
+        };
+
+        lines.forEach((line) => {
+          if (/^\s*```/.test(line)) {
+            flushParagraph();
+            closeList();
+            if (codeLines) {
+              output.push(
+                `<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`,
+              );
+              codeLines = null;
+            } else {
+              codeLines = [];
+            }
+            return;
+          }
+
+          if (codeLines) {
+            codeLines.push(line);
+            return;
+          }
+
+          const heading = line.match(/^\s*(#{1,3})\s+(.+)$/);
+          const listItem = line.match(/^\s*([-*]|\d+[.])\s+(.+)$/);
+          if (!line.trim()) {
+            flushParagraph();
+            closeList();
+          } else if (heading) {
+            flushParagraph();
+            closeList();
+            const level = heading[1].length;
+            output.push(
+              `<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`,
+            );
+          } else if (listItem) {
+            flushParagraph();
+            const nextListType = /^\d/.test(listItem[1]) ? "ol" : "ul";
+            if (listType !== nextListType) {
+              closeList();
+              listType = nextListType;
+              output.push(`<${listType}>`);
+            }
+            output.push(`<li>${renderInlineMarkdown(listItem[2])}</li>`);
+          } else {
+            closeList();
+            paragraph.push(line.trim());
+          }
+        });
+
+        if (codeLines) {
+          output.push(
+            `<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`,
+          );
+        }
+        flushParagraph();
+        closeList();
+        return output.join("");
+      }
+
+      async function ingestDocument() {
+        const document = documentInput.files[0];
+        if (!document) {
+          uploadStatusEl.className = "status error";
+          uploadStatusEl.textContent = "error: choose a PDF document";
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("document", document);
+        uploadBtn.disabled = true;
+        uploadStatusEl.className = "status";
+        uploadStatusEl.innerHTML =
+          '<span class="blink"></span> extracting, embedding, and indexing...';
+
+        try {
+          const res = await fetch("/api/ingest", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "upload failed");
+          uploadStatusEl.textContent = data.alreadyIngested
+            ? `already indexed: ${data.filename}`
+            : `done: ${data.filename} indexed in ${data.chunks} chunks`;
+        } catch (err) {
+          uploadStatusEl.className = "status error";
+          uploadStatusEl.textContent = `error: ${err.message}`;
+        } finally {
+          uploadBtn.disabled = false;
+        }
+      }
+
+      async function askQuestion() {
+        const question = questionEl.value.trim();
+        if (!question) {
+          statusEl.classList.add("error");
+          statusEl.innerHTML = "error: empty query";
+          return;
+        }
+
+        statusEl.classList.remove("error");
+        askBtn.disabled = true;
+        answerEl.classList.remove("placeholder");
+        answerEl.textContent = "";
+        latencyLabel.textContent = "running...";
+        resetStages();
+
+        // Simulated pipeline progression for visual feedback while the request is in flight
+        setStage("embed");
+        statusEl.innerHTML = '<span class="blink"></span> embedding query...';
+
+        const stageTimer1 = setTimeout(() => {
+          setStage("search");
+          statusEl.innerHTML =
+            '<span class="blink"></span> querying pinecone...';
+        }, 500);
+
+        const stageTimer2 = setTimeout(() => {
+          setStage("generate");
+          statusEl.innerHTML =
+            '<span class="blink"></span> generating response...';
+        }, 1100);
+
+        const startTime = performance.now();
+
+        try {
+          const res = await fetch("/api/query", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question }),
+          });
+
+          const data = await res.json();
+
+          clearTimeout(stageTimer1);
+          clearTimeout(stageTimer2);
+
+          if (!res.ok) {
+            throw new Error(data.error || "request failed");
+          }
+
+          setStage("done");
+          const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+          latencyLabel.textContent = `${elapsed}s`;
+          answerEl.innerHTML = renderMarkdown(data.answer || "");
+          statusEl.textContent = "done";
+        } catch (err) {
+          clearTimeout(stageTimer1);
+          clearTimeout(stageTimer2);
+          resetStages();
+          latencyLabel.textContent = "error";
+          statusEl.classList.add("error");
+          statusEl.textContent = `error: ${err.message}`;
+          answerEl.classList.add("placeholder");
+          answerEl.textContent = "";
+        } finally {
+          askBtn.disabled = false;
+        }
+      }
+
+      askBtn.addEventListener("click", askQuestion);
+      uploadBtn.addEventListener("click", ingestDocument);
+      questionEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          askQuestion();
+        }
       });
-
-      const data = await res.json();
-
-      clearTimeout(stageTimer1);
-      clearTimeout(stageTimer2);
-
-      if (!res.ok) {
-        throw new Error(data.error || "request failed");
-      }
-
-      setStage("done");
-      const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-      latencyLabel.textContent = `${elapsed}s`;
-      answerEl.textContent = data.answer;
-      statusEl.textContent = "done";
-    } catch (err) {
-      clearTimeout(stageTimer1);
-      clearTimeout(stageTimer2);
-      resetStages();
-      latencyLabel.textContent = "error";
-      statusEl.classList.add("error");
-      statusEl.textContent = `error: ${err.message}`;
-      answerEl.classList.add("placeholder");
-      answerEl.textContent = "";
-    } finally {
-      askBtn.disabled = false;
-    }
-  }
-
-  askBtn.addEventListener("click", askQuestion);
-  questionEl.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      askQuestion();
-    }
-  });
-</script>
-
-</body>
+    </script>
+  </body>
 </html>
